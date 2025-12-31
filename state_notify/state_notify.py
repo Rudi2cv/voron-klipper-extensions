@@ -97,14 +97,19 @@ class StateNotify:
                                             lambda: self._klippy_handler("ready"))
 
     def _klippy_handler(self, state):
-        self.handle_state_change(state, self.reactor.monotonic())
+        if state == "ready":
+            self.printer.get_reactor().register_callback(lambda eventtime: \
+                                                         self._handle_ready(state, eventtime))
+
+    def _handle_ready(self, state, eventtime):
+        self.handle_state_change(state, eventtime)
         if state == "ready":
             # Automaticaly transition from "ready" to "active".
             # If `on_ready_gcode` is present, it would have already
             # transition the state to "ready" during the execution of
             # the template.
             if self.state != "active":
-                self.handle_state_change("active", self.reactor.monotonic())
+                self.handle_state_change("active", eventtime)
         if state == "shutdown":
             if self.inactive_timer:
                 self.reactor.unregister_timer(self.inactive_timer)
